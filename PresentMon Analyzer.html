@@ -1,0 +1,3460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PresentMon Performance Analyzer</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <style>
+        /* Dark Cyberpunk Theme */
+        body {
+            background-color: #0F172A;
+            color: #E2E8F0;
+            font-family: 'Inter', sans-serif;
+            background-image: linear-gradient(to bottom, #0F172A, #1E1B4B);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .file-drop-area {
+            border: 2px dashed #4F46E5;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+        .file-drop-area:hover {
+            border-color: #818CF8;
+            background-color: rgba(79, 70, 229, 0.2);
+            box-shadow: 0 0 15px #4F46E5;
+        }
+        .file-highlight {
+            border-color: #818CF8;
+            background-color: rgba(79, 70, 229, 0.25);
+            box-shadow: 0 0 20px #4F46E5;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            color: #F9FAFB;
+            text-shadow: 0 0 10px rgba(129, 140, 248, 0.5);
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7), 
+                         0 0 20px rgba(129, 140, 248, 0.7),
+                         0 0 30px rgba(79, 70, 229, 0.5);
+        }
+        
+        button, .button {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            z-index: 1;
+            box-shadow: 0 0 10px rgba(129, 140, 248, 0.5);
+        }
+        
+        button:hover, .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(129, 140, 248, 0.7), 0 0 40px rgba(79, 70, 229, 0.3);
+        }
+        
+        /* Cyberpunk Button */
+        .cybr-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: none;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+        }
+        
+        .cybr-btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(115deg, 
+                rgba(255, 0, 204, 0.7) 0%, 
+                rgba(0, 204, 255, 0.7) 50%, 
+                rgba(153, 0, 255, 0.7) 100%);
+            background-size: 200% 200%;
+            z-index: -1;
+            animation: gradientFlow 3s ease infinite;
+            clip-path: polygon(
+                0 0, 
+                calc(100% - 8px) 0, 
+                100% 8px, 
+                100% 100%, 
+                8px 100%, 
+                0 calc(100% - 8px)
+            );
+        }
+        
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .cybr-btn:hover:before {
+            animation: gradientFlow 1.5s ease infinite;
+        }
+        
+        .cybr-btn:after {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            background: inherit;
+            clip-path: polygon(
+                2px 2px, 
+                calc(100% - 8px) 2px, 
+                calc(100% - 2px) 8px, 
+                calc(100% - 2px) calc(100% - 2px), 
+                8px calc(100% - 2px), 
+                2px calc(100% - 8px)
+            );
+            z-index: -1;
+        }
+        
+        /* Cyberpunk Small Button */
+        .cybr-btn-small {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            border: none;
+            font-weight: normal;
+            letter-spacing: 0.03em;
+            box-shadow: 0 0 5px rgba(129, 140, 248, 0.5);
+        }
+        
+        .cybr-btn-small:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(115deg, 
+                rgba(255, 0, 204, 0.7) 0%, 
+                rgba(0, 204, 255, 0.7) 50%, 
+                rgba(153, 0, 255, 0.7) 100%);
+            background-size: 200% 200%;
+            z-index: -1;
+            animation: gradientFlow 3s ease infinite;
+            clip-path: polygon(
+                0 0, 
+                calc(100% - 4px) 0, 
+                100% 4px, 
+                100% 100%, 
+                4px 100%, 
+                0 calc(100% - 4px)
+            );
+        }
+        
+        .cybr-btn-small:hover:before {
+            animation: gradientFlow 1.5s ease infinite;
+        }
+        
+        .cybr-btn-small:after {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            background: inherit;
+            clip-path: polygon(
+                1px 1px, 
+                calc(100% - 4px) 1px, 
+                calc(100% - 1px) 4px, 
+                calc(100% - 1px) calc(100% - 1px), 
+                4px calc(100% - 1px), 
+                1px calc(100% - 4px)
+            );
+            z-index: -1;
+        }
+        
+        /* Sliding Panel */
+        .slide-panel {
+            position: fixed;
+            top: 80px;
+            right: 0;
+            transition: transform 0.5s ease;
+            z-index: 100;
+        }
+        
+        .slide-panel-content {
+            background-color: rgba(30, 41, 59, 0.8);
+            border: 1px solid #4F46E5;
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+            padding: 10px;
+            box-shadow: -2px 0 15px rgba(79, 70, 229, 0.3);
+            backdrop-filter: blur(5px);
+        }
+        
+        .slide-tab {
+            position: absolute;
+            top: 50%;
+            left: -24px;
+            transform: translateY(-50%);
+            background-color: rgba(30, 41, 59, 0.8);
+            border: 1px solid #4F46E5;
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+            padding: 8px 4px;
+            cursor: pointer;
+            box-shadow: -2px 0 10px rgba(79, 70, 229, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .slide-tab:hover {
+            background-color: rgba(79, 70, 229, 0.2);
+        }
+        
+        .slide-tab svg {
+            width: 16px;
+            height: 16px;
+            fill: #818CF8;
+            transition: transform 0.3s ease;
+        }
+        
+        .slide-panel.closed .slide-tab svg {
+            transform: rotate(180deg);
+        }
+        
+        .slide-panel.closed {
+            transform: translateX(100%);
+        }
+        
+        .metric-card {
+            transition: all 0.3s;
+            position: relative;
+            background-color: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.15);
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(129, 140, 248, 0.5);
+        }
+        
+        .metric-card:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #FF00CC, #3333FF, #00CCFF);
+            z-index: 2;
+        }
+        
+        .bg-white {
+            background-color: #1E293B !important;
+            border: 1px solid #334155;
+            box-shadow: 0 0 15px rgba(15, 23, 42, 0.3);
+        }
+        
+        .shadow-glow {
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.3), 0 0 30px rgba(99, 102, 241, 0.15);
+        }
+        
+        .pros-list li {
+            color: #4ADE80;
+            text-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
+        }
+        .cons-list li {
+            color: #F87171;
+            text-shadow: 0 0 5px rgba(248, 113, 113, 0.5);
+        }
+        
+        /* Bloom Effect for Chart Elements */
+        canvas {
+            filter: drop-shadow(0 0 5px rgba(129, 140, 248, 0.5));
+        }
+        
+        /* Toggle Container */
+        .toggle-container {
+            position: absolute;
+            top: 0;
+            right: 5px;
+            font-size: 12px;
+            z-index: 10;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+            margin-left: 6px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1E293B;
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid #334155;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 2px;
+            background-color: #CBD5E1;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(129, 140, 248, 0.5);
+        }
+        input:checked + .toggle-slider {
+            background-color: #4F46E5;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(16px);
+            background-color: #F1F5F9;
+            box-shadow: 0 0 8px rgba(129, 140, 248, 0.8);
+        }
+        
+        /* Tooltip Enhancement */
+        .metric-tooltip {
+            position: absolute;
+            left: 0;
+            top: 0;
+            margin-top: 6px;
+            width: 280px;
+            padding: 12px;
+            background-color: rgba(30, 41, 59, 0.97);
+            color: white;
+            font-size: 12px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(129, 140, 248, 0.5), inset 0 0 1px rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            line-height: 1.5;
+        }
+        
+        .metric-name {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .info-icon {
+            margin-left: 6px;
+            color: #818CF8;
+            filter: drop-shadow(0 0 3px rgba(129, 140, 248, 0.6));
+            cursor: help;
+        }
+        
+        /* Text Colors */
+        .text-gray-500 {
+            color: #94A3B8 !important;
+        }
+        
+        .text-gray-600 {
+            color: #CBD5E1 !important;
+        }
+        
+        .text-gray-700 {
+            color: #E2E8F0 !important;
+        }
+        
+        .text-gray-800, .text-gray-900 {
+            color: #F1F5F9 !important;
+        }
+        
+        .text-blue-500 {
+            color: #818CF8 !important;
+        }
+        
+        .text-green-600 {
+            color: #4ADE80 !important;
+            text-shadow: 0 0 5px rgba(74, 222, 128, 0.5);
+        }
+        
+        .text-red-500, .text-red-600 {
+            color: #F87171 !important;
+            text-shadow: 0 0 5px rgba(248, 113, 113, 0.5);
+        }
+        
+        /* Background Colors */
+        .bg-gray-50 {
+            background-color: #1E293B !important;
+        }
+        
+        .bg-blue-50 {
+            background-color: rgba(79, 70, 229, 0.15) !important;
+            border-color: rgba(79, 70, 229, 0.3) !important;
+        }
+        
+        .bg-green-50 {
+            background-color: rgba(74, 222, 128, 0.15) !important;
+            border-color: rgba(74, 222, 128, 0.3) !important;
+        }
+        
+        /* Table Styling */
+        table {
+            border-color: #334155 !important;
+        }
+        
+        th {
+            background-color: #0F172A !important;
+            color: #F9FAFB !important;
+        }
+        
+        td {
+            border-color: #334155 !important;
+        }
+        
+        /* Form Elements */
+        input[type="text"] {
+            background-color: #0F172A;
+            border-color: #334155;
+            color: #F1F5F9;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #818CF8;
+            box-shadow: 0 0 10px rgba(129, 140, 248, 0.5);
+        }
+        
+        /* Loading Animation */
+        .animate-spin {
+            border-color: #818CF8 !important;
+            filter: drop-shadow(0 0 5px rgba(129, 140, 248, 0.5));
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-10 text-center">
+            <h1 class="text-4xl font-bold glow-text mb-2">PresentMon Performance Analyzer</h1>
+            <p class="text-gray-600">Upload PresentMon CSV files to generate performance comparison graphs</p>
+        </header>
+
+        <!-- Sliding Panel for Sanchi's Config -->
+        <div id="config-panel" class="slide-panel">
+            <div class="slide-tab" id="config-tab">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11.47 4.72a.75.75 0 011.06 0l3.75 3.75a.75.75 0 01-1.06 1.06L12 6.31 8.78 9.53a.75.75 0 01-1.06-1.06l3.75-3.75zm-3.75 9.75a.75.75 0 011.06 0L12 17.69l3.22-3.22a.75.75 0 111.06 1.06l-3.75 3.75a.75.75 0 01-1.06 0l-3.75-3.75a.75.75 0 010-1.06z" />
+                </svg>
+            </div>
+            <div class="slide-panel-content">
+                <div class="flex items-center space-x-2">
+                    <p class="text-cyan-300 text-xs">Try Sanchi's PresentMon Overlay Config:</p>
+                    <a href="#" id="download-preset" class="cybr-btn-small px-2 py-1 bg-fuchsia-700 text-white text-xs rounded hover:bg-fuchsia-800 focus:outline-none inline-flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                        Download
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-glow p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4">Upload Files</h2>
+            
+            <div class="mb-6 text-center">
+                <p class="mb-4">Select PresentMon CSV files from your computer</p>
+                <input type="file" id="file-input" multiple accept=".csv" class="hidden">
+                <button class="cybr-btn px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none" id="file-select-button">
+                    Select Files
+                </button>
+            </div>
+            
+            <div class="file-drop-area mb-6" id="file-drop-area">
+                <p class="mb-2">Or drag & drop PresentMon CSV files here</p>
+            </div>
+
+            <div id="file-list" class="hidden mb-6">
+                <h3 class="font-bold mb-2">Selected Files:</h3>
+                <ul id="selected-files" class="list-disc pl-5 mb-4"></ul>
+            </div>
+
+            <div id="config-options" class="hidden">
+                <h3 class="font-bold mb-2">Configure Runs:</h3>
+                <div id="run-configurations" class="space-y-4 mb-6"></div>
+                
+                <div id="generate-button-container" class="flex justify-center">
+                    <button id="generate-graphs" class="cybr-btn px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none font-bold">
+                        Generate Graphs
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading-indicator" class="hidden flex justify-center items-center my-10">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <p class="ml-3 text-lg text-blue-500">Processing data...</p>
+        </div>
+        
+        <div id="results-container" class="hidden mb-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold text-lg mb-3 text-center">Performance Summary</h3>
+                    <div id="summary-metrics" class="grid grid-cols-2 gap-4">
+                        <!-- Summary metrics will be populated here -->
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <h3 class="font-bold text-lg mb-3 text-center">Overall Recommendation</h3>
+                    <div id="recommendation" class="p-4 text-sm"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                <!-- FPS Charts -->
+                <div class="bg-white rounded-lg shadow-md p-4 relative">
+                    <div class="toggle-container">
+                        <label class="inline-flex items-center">
+                            <span class="text-xs text-gray-600">Show as %</span>
+                            <label class="toggle-switch ml-2">
+                                <input type="checkbox" class="chart-toggle" data-chart="avgFpsChart">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Average FPS Comparison</h3>
+                    <div class="h-64">
+                        <canvas id="avgFpsChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 relative">
+                    <div class="toggle-container">
+                        <label class="inline-flex items-center">
+                            <span class="text-xs text-gray-600">Show as %</span>
+                            <label class="toggle-switch ml-2">
+                                <input type="checkbox" class="chart-toggle" data-chart="percentileFpsChart">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Percentile FPS (1% & 0.1% Lows)</h3>
+                    <div class="h-64">
+                        <canvas id="percentileFpsChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 relative">
+                    <div class="toggle-container">
+                        <label class="inline-flex items-center">
+                            <span class="text-xs text-gray-600">Show as %</span>
+                            <label class="toggle-switch ml-2">
+                                <input type="checkbox" class="chart-toggle" data-chart="frameTimeChart">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Frame Time Distribution</h3>
+                    <div class="h-64">
+                        <canvas id="frameTimeChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 relative">
+                    <div class="toggle-container">
+                        <label class="inline-flex items-center">
+                            <span class="text-xs text-gray-600">Show as %</span>
+                            <label class="toggle-switch ml-2">
+                                <input type="checkbox" class="chart-toggle" data-chart="fpsRangeChart">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">FPS Stability Range</h3>
+                    <div class="h-64">
+                        <canvas id="fpsRangeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                <!-- Latency & GPU Charts -->
+                <div class="bg-white rounded-lg shadow-md p-4 relative">
+                    <div class="toggle-container">
+                        <label class="inline-flex items-center">
+                            <span class="text-xs text-gray-600">Show as %</span>
+                            <label class="toggle-switch ml-2">
+                                <input type="checkbox" class="chart-toggle" data-chart="latencyChart">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">Latency Comparison</h3>
+                    <div class="h-64">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 relative">
+                    <div class="toggle-container">
+                        <label class="inline-flex items-center">
+                            <span class="text-xs text-gray-600">Show as %</span>
+                            <label class="toggle-switch ml-2">
+                                <input type="checkbox" class="chart-toggle" data-chart="gpuUtilizationChart">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">GPU Utilization</h3>
+                    <div class="h-64">
+                        <canvas id="gpuUtilizationChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 relative">
+                    <div class="toggle-container">
+                        <label class="inline-flex items-center">
+                            <span class="text-xs text-gray-600">Show as %</span>
+                            <label class="toggle-switch ml-2">
+                                <input type="checkbox" class="chart-toggle" data-chart="cpuGpuChart">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">CPU vs GPU Time</h3>
+                    <div class="h-64">
+                        <canvas id="cpuGpuChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-4 relative">
+                    <div class="toggle-container">
+                        <label class="inline-flex items-center">
+                            <span class="text-xs text-gray-600">Show as %</span>
+                            <label class="toggle-switch ml-2">
+                                <input type="checkbox" class="chart-toggle" data-chart="gpuPowerTempChart">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">GPU Power & Temperature</h3>
+                    <div class="h-64">
+                        <canvas id="gpuPowerTempChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 mb-10">
+                <h3 class="font-bold text-lg mb-4">Detailed Performance Metrics</h3>
+                <div class="overflow-x-auto">
+                    <table id="metrics-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metric</th>
+                                <!-- Run headers will be added dynamically -->
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Best Config</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- Table rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- New Detailed Conclusion Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-10">
+                <h3 class="font-bold text-lg mb-4">Detailed Run Comparison</h3>
+                <div id="detailed-conclusion" class="space-y-6">
+                    <!-- Will be populated with individual run analysis -->
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center text-gray-500 text-sm mt-10 pb-5 glow-text">
+            <p>Works with Intel PresentMon CSV files</p>
+        </footer>
+    </div>
+
+    <script>
+        // JSON preset data for download
+        const presetData = {
+           "signature": {
+              "code": "p2c-cap-load",
+              "version": "0.13.0"
+           },
+           "widgets": [
+              {
+                 "key": 0,
+                 "metrics": [
+                    {
+                       "key": 3,
+                       "metric": {
+                          "metricId": 3,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 7,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 100,
+                          "g": 255,
+                          "b": 255,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    }
+                 ],
+                 "widgetType": 1,
+                 "showLabel": false,
+                 "fontSize": 20,
+                 "fontColor": {
+                    "r": 205,
+                    "g": 211,
+                    "b": 233,
+                    "a": 1
+                 },
+                 "backgroundColor": {
+                    "r": 45,
+                    "g": 50,
+                    "b": 96,
+                    "a": 0.4
+                 }
+              },
+              {
+                 "key": 1,
+                 "metrics": [
+                    {
+                       "key": 11,
+                       "metric": {
+                          "metricId": 12,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 252,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    }
+                 ],
+                 "widgetType": 0,
+                 "height": 80,
+                 "vDivs": 4,
+                 "hDivs": 40,
+                 "showBottomAxis": false,
+                 "graphType": {
+                    "name": "Line",
+                    "range": [
+                       0,
+                       150
+                    ],
+                    "rangeRight": [
+                       0,
+                       150
+                    ],
+                    "binCount": 40,
+                    "countRange": [
+                       0,
+                       1000
+                    ],
+                    "autoLeft": true,
+                    "autoRight": true,
+                    "autoCount": false
+                 },
+                 "gridColor": {
+                    "r": 47,
+                    "g": 120,
+                    "b": 190,
+                    "a": 0.1568627450980392
+                 },
+                 "dividerColor": {
+                    "r": 57,
+                    "g": 126,
+                    "b": 150,
+                    "a": 0.8627450980392157
+                 },
+                 "backgroundColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "borderColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "textColor": {
+                    "r": 242,
+                    "g": 242,
+                    "b": 242,
+                    "a": 1
+                 },
+                 "textSize": 11
+              },
+              {
+                 "key": 2,
+                 "metrics": [
+                    {
+                       "key": 0,
+                       "metric": {
+                          "metricId": 11,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 100,
+                          "g": 255,
+                          "b": 255,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 2,
+                       "metric": {
+                          "metricId": 12,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 5,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 100,
+                          "b": 122,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 7,
+                       "metric": {
+                          "metricId": 12,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 6,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 200,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 8,
+                       "metric": {
+                          "metricId": 12,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 3,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 110,
+                          "g": 255,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    }
+                 ],
+                 "widgetType": 0,
+                 "height": 80,
+                 "vDivs": 4,
+                 "hDivs": 40,
+                 "showBottomAxis": false,
+                 "graphType": {
+                    "name": "Line",
+                    "range": [
+                       0,
+                       200
+                    ],
+                    "rangeRight": [
+                       0,
+                       150
+                    ],
+                    "binCount": 40,
+                    "countRange": [
+                       0,
+                       1000
+                    ],
+                    "autoLeft": true,
+                    "autoRight": true,
+                    "autoCount": false
+                 },
+                 "gridColor": {
+                    "r": 47,
+                    "g": 120,
+                    "b": 190,
+                    "a": 0.1568627450980392
+                 },
+                 "valueTextColor": {
+                    "r": 34,
+                    "g": 210,
+                    "b": 250,
+                    "a": 0.8627450980392157
+                 },
+                 "dividerColor": {
+                    "r": 57,
+                    "g": 126,
+                    "b": 150,
+                    "a": 0.8627450980392157
+                 },
+                 "backgroundColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "borderColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "textColor": {
+                    "r": 242,
+                    "g": 242,
+                    "b": 242,
+                    "a": 1
+                 },
+                 "textSize": 11
+              },
+              {
+                 "key": 3,
+                 "metrics": [
+                    {
+                       "key": 8,
+                       "metric": {
+                          "metricId": 8,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 117,
+                          "b": 237,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 9,
+                       "metric": {
+                          "metricId": 14,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 245,
+                          "g": 255,
+                          "b": 0,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 0,
+                       "metric": {
+                          "metricId": 9,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 100,
+                          "g": 255,
+                          "b": 255,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 1,
+                       "metric": {
+                          "metricId": 15,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 245,
+                          "g": 255,
+                          "b": 0,
+                          "a": 0.86
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 2,
+                       "metric": {
+                          "metricId": 10,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 100,
+                          "g": 255,
+                          "b": 255,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 5,
+                       "metric": {
+                          "metricId": 24,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 10,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 100,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    }
+                 ],
+                 "widgetType": 0,
+                 "height": 80,
+                 "vDivs": 4,
+                 "hDivs": 40,
+                 "showBottomAxis": false,
+                 "graphType": {
+                    "name": "Line",
+                    "range": [
+                       0,
+                       150
+                    ],
+                    "rangeRight": [
+                       0,
+                       150
+                    ],
+                    "binCount": 40,
+                    "countRange": [
+                       0,
+                       1000
+                    ],
+                    "autoLeft": true,
+                    "autoRight": true,
+                    "autoCount": false
+                 },
+                 "gridColor": {
+                    "r": 47,
+                    "g": 120,
+                    "b": 190,
+                    "a": 0.1568627450980392
+                 },
+                 "dividerColor": {
+                    "r": 57,
+                    "g": 126,
+                    "b": 150,
+                    "a": 0.8627450980392157
+                 },
+                 "backgroundColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "borderColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "textColor": {
+                    "r": 242,
+                    "g": 242,
+                    "b": 242,
+                    "a": 1
+                 },
+                 "textSize": 11
+              },
+              {
+                 "key": 4,
+                 "metrics": [
+                    {
+                       "key": 4,
+                       "metric": {
+                          "metricId": 65,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 8,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 100,
+                          "g": 255,
+                          "b": 255,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 5,
+                       "metric": {
+                          "metricId": 24,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 100,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 10,
+                       "metric": {
+                          "metricId": 25,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 8,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 100,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    }
+                 ],
+                 "widgetType": 0,
+                 "height": 80,
+                 "vDivs": 4,
+                 "hDivs": 40,
+                 "showBottomAxis": false,
+                 "graphType": {
+                    "name": "Line",
+                    "range": [
+                       0,
+                       150
+                    ],
+                    "rangeRight": [
+                       0,
+                       150
+                    ],
+                    "binCount": 40,
+                    "countRange": [
+                       0,
+                       1000
+                    ],
+                    "autoLeft": true,
+                    "autoRight": true,
+                    "autoCount": false
+                 },
+                 "gridColor": {
+                    "r": 47,
+                    "g": 120,
+                    "b": 190,
+                    "a": 0.1568627450980392
+                 },
+                 "dividerColor": {
+                    "r": 57,
+                    "g": 126,
+                    "b": 150,
+                    "a": 0.8627450980392157
+                 },
+                 "backgroundColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "borderColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "textColor": {
+                    "r": 242,
+                    "g": 242,
+                    "b": 242,
+                    "a": 1
+                 },
+                 "textSize": 11
+              },
+              {
+                 "key": 5,
+                 "metrics": [
+                    {
+                       "key": 6,
+                       "metric": {
+                          "metricId": 33,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 100,
+                          "g": 255,
+                          "b": 255,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 7,
+                       "metric": {
+                          "metricId": 32,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 100,
+                          "g": 255,
+                          "b": 255,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 9,
+                       "metric": {
+                          "metricId": 56,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 230,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 10,
+                       "metric": {
+                          "metricId": 32,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 5,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 165,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 11,
+                       "metric": {
+                          "metricId": 56,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 5,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 100,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    }
+                 ],
+                 "widgetType": 0,
+                 "height": 80,
+                 "vDivs": 4,
+                 "hDivs": 40,
+                 "showBottomAxis": false,
+                 "graphType": {
+                    "name": "Line",
+                    "range": [
+                       0,
+                       150
+                    ],
+                    "rangeRight": [
+                       0,
+                       150
+                    ],
+                    "binCount": 40,
+                    "countRange": [
+                       0,
+                       1000
+                    ],
+                    "autoLeft": true,
+                    "autoRight": true,
+                    "autoCount": false
+                 },
+                 "gridColor": {
+                    "r": 47,
+                    "g": 120,
+                    "b": 190,
+                    "a": 0.1568627450980392
+                 },
+                 "dividerColor": {
+                    "r": 57,
+                    "g": 126,
+                    "b": 150,
+                    "a": 0.8627450980392157
+                 },
+                 "backgroundColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "borderColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "textColor": {
+                    "r": 242,
+                    "g": 242,
+                    "b": 242,
+                    "a": 1
+                 },
+                 "textSize": 11
+              },
+              {
+                 "key": 6,
+                 "metrics": [
+                    {
+                       "key": 0,
+                       "metric": {
+                          "metricId": 27,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 170,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 1,
+                       "metric": {
+                          "metricId": 30,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 255,
+                          "g": 100,
+                          "b": 100,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 2,
+                       "metric": {
+                          "metricId": 29,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 100,
+                          "g": 255,
+                          "b": 255,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    },
+                    {
+                       "key": 3,
+                       "metric": {
+                          "metricId": 47,
+                          "arrayIndex": 0,
+                          "deviceId": 0,
+                          "statId": 1,
+                          "desiredUnitId": 0
+                       },
+                       "lineColor": {
+                          "r": 149,
+                          "g": 100,
+                          "b": 255,
+                          "a": 0.8627450980392157
+                       },
+                       "fillColor": {
+                          "r": 57,
+                          "g": 210,
+                          "b": 250,
+                          "a": 0.09803921568627451
+                       },
+                       "axisAffinity": 0
+                    }
+                 ],
+                 "widgetType": 0,
+                 "height": 80,
+                 "vDivs": 4,
+                 "hDivs": 40,
+                 "showBottomAxis": false,
+                 "graphType": {
+                    "name": "Line",
+                    "range": [
+                       0,
+                       150
+                    ],
+                    "rangeRight": [
+                       0,
+                       150
+                    ],
+                    "binCount": 40,
+                    "countRange": [
+                       0,
+                       1000
+                    ],
+                    "autoLeft": true,
+                    "autoRight": true,
+                    "autoCount": false
+                 },
+                 "gridColor": {
+                    "r": 47,
+                    "g": 120,
+                    "b": 190,
+                    "a": 0.1568627450980392
+                 },
+                 "dividerColor": {
+                    "r": 57,
+                    "g": 126,
+                    "b": 150,
+                    "a": 0.8627450980392157
+                 },
+                 "backgroundColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "borderColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                 },
+                 "textColor": {
+                    "r": 242,
+                    "g": 242,
+                    "b": 242,
+                    "a": 1
+                 },
+                 "textSize": 11
+              }
+           ]
+        };
+
+        // Color palette for runs
+        const COLORS = [
+            { bg: '#FF00CC', bgAlpha: 'rgba(255, 0, 204, 0.7)', border: '#FF00CC' },  // Neon Pink
+            { bg: '#00FFFF', bgAlpha: 'rgba(0, 255, 255, 0.7)', border: '#00FFFF' },  // Cyan
+            { bg: '#FF9900', bgAlpha: 'rgba(255, 153, 0, 0.7)', border: '#FF9900' },  // Neon Orange
+            { bg: '#00FF99', bgAlpha: 'rgba(0, 255, 153, 0.7)', border: '#00FF99' },  // Neon Green
+            { bg: '#9900FF', bgAlpha: 'rgba(153, 0, 255, 0.7)', border: '#9900FF' },  // Neon Purple
+            { bg: '#00CCFF', bgAlpha: 'rgba(0, 204, 255, 0.7)', border: '#00CCFF' }   // Blue
+        ];
+
+        // Main app state
+        const state = {
+            files: [],
+            parsedData: [],
+            runConfigs: [],
+            processingComplete: false,
+            chartNormalized: {}
+        };
+
+        // DOM elements
+        const elements = {
+            fileDropArea: document.getElementById('file-drop-area'),
+            fileInput: document.getElementById('file-input'),
+            fileSelectButton: document.getElementById('file-select-button'),
+            fileList: document.getElementById('file-list'),
+            selectedFiles: document.getElementById('selected-files'),
+            configOptions: document.getElementById('config-options'),
+            runConfigurations: document.getElementById('run-configurations'),
+            generateButton: document.getElementById('generate-graphs'),
+            loadingIndicator: document.getElementById('loading-indicator'),
+            resultsContainer: document.getElementById('results-container'),
+            summaryMetrics: document.getElementById('summary-metrics'),
+            recommendation: document.getElementById('recommendation'),
+            metricsTable: document.getElementById('metrics-table'),
+            detailedConclusion: document.getElementById('detailed-conclusion'),
+            configPanel: document.getElementById('config-panel'),
+            configTab: document.getElementById('config-tab'),
+            downloadPreset: document.getElementById('download-preset')
+        };
+
+        // Chart instances
+        const charts = {};
+
+        // ===== App Control Functions =====
+        
+        function resetApp() {
+            // Reset state
+            state.files = [];
+            state.parsedData = [];
+            state.runConfigs = [];
+            state.processingComplete = false;
+            state.chartNormalized = {};
+            
+            // Reset UI
+            elements.fileList.classList.add('hidden');
+            elements.selectedFiles.innerHTML = '';
+            elements.configOptions.classList.add('hidden');
+            elements.runConfigurations.innerHTML = '';
+            elements.resultsContainer.classList.add('hidden');
+            
+            // Destroy charts
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+        }
+        
+        function updateMetricsSummary() {
+            elements.summaryMetrics.innerHTML = '';
+            
+            // Create summary metrics cards
+            const metrics = [
+                { name: 'Avg FPS', key: 'avgFps', format: v => v.toFixed(2), higherIsBetter: true },
+                { name: '1% Low FPS', key: 'fps1Percentile', format: v => v.toFixed(2), higherIsBetter: true },
+                { name: '0.1% Low FPS', key: 'fps01Percentile', format: v => v.toFixed(2), higherIsBetter: true },
+                { name: 'Frame Time', key: 'avgFrameTime', format: v => v.toFixed(2) + ' ms', higherIsBetter: false }
+            ];
+            
+            metrics.forEach(metric => {
+                // Get best run for this metric
+                let bestRunIndex = 0;
+                let bestValue = metric.higherIsBetter ? -Infinity : Infinity;
+                
+                state.parsedData.forEach((run, index) => {
+                    const value = run.metrics[metric.key];
+                    if ((metric.higherIsBetter && value > bestValue) || 
+                        (!metric.higherIsBetter && value < bestValue)) {
+                        bestValue = value;
+                        bestRunIndex = index;
+                    }
+                });
+                
+                // Create card for this metric
+                const card = document.createElement('div');
+                card.className = 'metric-card bg-white shadow rounded-lg p-4';
+                
+                const valuesHtml = state.parsedData.map((run, index) => {
+                    const value = run.metrics[metric.key];
+                    const formattedValue = metric.format(value);
+                    const isBest = index === bestRunIndex;
+                    
+                    // Calculate percentage of best value
+                    let percentOfBest = '';
+                    if (state.parsedData.length > 1) {
+                        const bestMetricValue = state.parsedData[bestRunIndex].metrics[metric.key];
+                        const percentage = metric.higherIsBetter 
+                            ? (value / bestMetricValue * 100).toFixed(1) 
+                            : (bestMetricValue / value * 100).toFixed(1);
+                        percentOfBest = isBest ? '' : ` (${percentage}%)`;
+                    }
+                    
+                    return `
+                        <div class="flex items-center justify-between mt-1">
+                            <span class="text-sm text-gray-600">${run.name}:</span>
+                            <span class="font-mono ${isBest ? 'font-bold text-green-600' : ''}">${formattedValue}${percentOfBest}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                card.innerHTML = `
+                    <div class="text-sm font-bold text-gray-700 mb-2">${metric.name}</div>
+                    ${valuesHtml}
+                `;
+                
+                elements.summaryMetrics.appendChild(card);
+            });
+        }
+        
+        function updateRecommendation() {
+            // Calculate a score for each run based on key metrics
+            const scores = state.parsedData.map(run => {
+                const metrics = run.metrics;
+                
+                // Weight different metrics based on importance
+                const weightedScore = 
+                    metrics.avgFps * 0.3 + 
+                    metrics.fps1Percentile * 0.3 + 
+                    metrics.fps01Percentile * 0.2 + 
+                    (1 / (metrics.frameTimeStdDev + 0.01)) * 20 * 0.2; // Lower frame time variance is better
+                
+                return {
+                    name: run.name,
+                    score: weightedScore,
+                    avgFps: metrics.avgFps,
+                    fps1Percentile: metrics.fps1Percentile,
+                    fps01Percentile: metrics.fps01Percentile,
+                    frameTimeStdDev: metrics.frameTimeStdDev
+                };
+            });
+            
+            // Sort by score
+            scores.sort((a, b) => b.score - a.score);
+            
+            // Generate recommendation text
+            let recommendationHtml = `
+                <p class="mb-4">Based on the performance analysis, here's how the configurations compare:</p>
+                <ol class="list-decimal pl-5 mb-4">
+            `;
+            
+            scores.forEach((score, index) => {
+                const positionClass = index === 0 ? 'text-green-600 font-bold' : (index === scores.length - 1 ? 'text-red-500' : '');
+                
+                // Calculate percentages relative to the best
+                const bestScore = scores[0];
+                const avgFpsPercent = (score.avgFps / bestScore.avgFps * 100).toFixed(1);
+                const fps1Percent = (score.fps1Percentile / bestScore.fps1Percentile * 100).toFixed(1);
+                const fps01Percent = (score.fps01Percentile / bestScore.fps01Percentile * 100).toFixed(1);
+                // For frame time stability, lower is better so invert the percentage
+                const stabilityPercent = (bestScore.frameTimeStdDev / score.frameTimeStdDev * 100).toFixed(1);
+                
+                const percentText = index === 0 ? '' : ` (${(score.score / bestScore.score * 100).toFixed(1)}% of best)`;
+                
+                recommendationHtml += `
+                    <li class="${positionClass} mb-2">
+                        <span class="font-semibold">${score.name}${percentText}</span>
+                        <ul class="list-disc pl-5 mt-1 text-gray-700">
+                            <li>Average FPS: ${score.avgFps.toFixed(2)} ${index === 0 ? '' : `(${avgFpsPercent}%)`}</li>
+                            <li>1% Low FPS: ${score.fps1Percentile.toFixed(2)} ${index === 0 ? '' : `(${fps1Percent}%)`}</li>
+                            <li>0.1% Low FPS: ${score.fps01Percentile.toFixed(2)} ${index === 0 ? '' : `(${fps01Percent}%)`}</li>
+                            <li>Frame Time Stability: ${score.frameTimeStdDev.toFixed(2)}ms ${index === 0 ? '' : `(${stabilityPercent}%)`}</li>
+                        </ul>
+                    </li>
+                `;
+            });
+            
+            recommendationHtml += `
+                </ol>
+                <p class="p-3 bg-blue-50 border border-blue-200 rounded">
+                    <strong>Recommendation:</strong> ${scores[0].name} provides the best overall performance with 
+                    good average FPS and frame stability.
+                    ${scores.length > 1 ? `It outperforms ${scores[scores.length - 1].name} especially in low 1% FPS 
+                    (${scores[0].fps1Percentile.toFixed(2)} vs ${scores[scores.length - 1].fps1Percentile.toFixed(2)}).` : ''}
+                </p>
+            `;
+            
+            elements.recommendation.innerHTML = recommendationHtml;
+        }
+        
+        function updateMetricsTable() {
+            // Get table headers
+            const headerRow = elements.metricsTable.querySelector('thead tr');
+            
+            // Clear existing headers except the first and last
+            while (headerRow.children.length > 2) {
+                headerRow.removeChild(headerRow.children[1]);
+            }
+            
+            // Add run name headers
+            state.parsedData.forEach(run => {
+                const th = document.createElement('th');
+                th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                th.textContent = run.name;
+                headerRow.insertBefore(th, headerRow.lastElementChild);
+            });
+            
+            // Clear table body
+            const tbody = elements.metricsTable.querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            // Define metrics to show in the table with explanations focused on input lag reduction
+            const tableMetrics = [
+                { 
+                    name: 'Average FPS', 
+                    key: 'avgFps', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: true,
+                    description: 'Higher is better. Higher frame rates reduce input lag. Each frame in a 60 FPS game adds ~16.7ms of potential lag, while at 144 FPS it is only ~6.9ms.'
+                },
+                { 
+                    name: 'Minimum FPS', 
+                    key: 'minFps', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: true,
+                    description: 'Higher is better. Minimum FPS represents worst-case scenarios where input lag spikes can occur. Higher values ensure more consistent input response.'
+                },
+                { 
+                    name: 'Maximum FPS', 
+                    key: 'maxFps', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: true 
+                },
+                { 
+                    name: '1% Low FPS', 
+                    key: 'fps1Percentile', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: true,
+                    description: 'Higher is better. Represents frame rate during the worst 1% of gameplay. Low values cause noticeable input lag spikes during crucial moments.'
+                },
+                { 
+                    name: '0.1% Low FPS', 
+                    key: 'fps01Percentile', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: true,
+                    description: 'Higher is better. Extreme worst-case performance. Even brief dips this low can cause significant input lag spikes that affect gameplay.'
+                },
+                { 
+                    name: 'Frame Time Avg (ms)', 
+                    key: 'avgFrameTime', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: false,
+                    description: 'Lower is better. Directly contributes to input lag - each millisecond here is a millisecond of potential input lag. Values below 10ms (100+ FPS) are ideal for competitive gaming.'
+                },
+                { 
+                    name: 'Frame Time StdDev (ms)', 
+                    key: 'frameTimeStdDev', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: false,
+                    description: 'Lower is better. Measures frame time consistency. High values create inconsistent input response ("jittery" feel). Aim for under 5ms for smooth, predictable input.'
+                },
+                { 
+                    name: 'Display Latency (ms)', 
+                    key: 'avgDisplayLatency', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: false,
+                    description: 'Lower is better. Total time from input to visual feedback. Values under 20ms feel responsive for competitive gaming. This is the most direct input lag measurement.'
+                },
+                { 
+                    name: 'GPU Utilization (%)', 
+                    key: 'avgGpuUtil', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: null,
+                    description: 'For lowest input lag, 80-95% is ideal. 100% utilization can create frame queuing that increases latency, while too low utilization suggests performance left unused.'
+                },
+                { 
+                    name: 'CPU Utilization (%)', 
+                    key: 'avgCpuUtil', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: null,
+                    description: 'For lowest input lag, aim for 50-80%. High values may indicate CPU bottlenecks causing frame scheduling issues that increase latency.'
+                },
+                { 
+                    name: 'GPU Power (W)', 
+                    key: 'avgGpuPower', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: false,
+                    description: 'Lower is better for efficiency, but may affect performance. For lowest input lag, prioritize performance metrics over power draw unless thermal throttling occurs.'
+                },
+                { 
+                    name: 'GPU Temperature (°C)', 
+                    key: 'avgGpuTemp', 
+                    format: v => v.toFixed(2), 
+                    higherIsBetter: false,
+                    description: 'Lower is better. High temperatures (85°C+) can cause thermal throttling, leading to inconsistent performance and increased input lag during intensive gameplay.'
+                }
+            ];
+            
+            // Add rows for each metric
+            tableMetrics.forEach(metric => {
+                const row = document.createElement('tr');
+                
+                // Add metric name cell with tooltip for explanation
+                const nameCell = document.createElement('td');
+                nameCell.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900';
+                
+                // Create the name with info icon if we have a description
+                if (metric.description) {
+                    const metricName = document.createElement('div');
+                    metricName.className = 'metric-name';
+                    metricName.innerHTML = `
+                        ${metric.name}
+                        <span class="info-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    `;
+                    
+                    // Create tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'metric-tooltip';
+                    tooltip.textContent = metric.description;
+                    tooltip.style.opacity = '0';
+                    tooltip.style.display = 'none';
+                    
+                    metricName.appendChild(tooltip);
+                    
+                    // Add hover event listeners
+                    metricName.addEventListener('mouseenter', () => {
+                        tooltip.style.display = 'block';
+                        setTimeout(() => {
+                            tooltip.style.opacity = '1';
+                        }, 10);
+                    });
+                    
+                    metricName.addEventListener('mouseleave', () => {
+                        tooltip.style.opacity = '0';
+                        setTimeout(() => {
+                            tooltip.style.display = 'none';
+                        }, 200);
+                    });
+                    
+                    nameCell.appendChild(metricName);
+                } else {
+                    nameCell.textContent = metric.name;
+                }
+                
+                row.appendChild(nameCell);
+                
+                // Get best value for highlighting
+                let bestRunIndex = -1;
+                let bestValue = null;
+                if (metric.higherIsBetter !== null) {
+                    bestValue = metric.higherIsBetter ? -Infinity : Infinity;
+                    state.parsedData.forEach((run, index) => {
+                        const value = run.metrics[metric.key];
+                        if ((metric.higherIsBetter && value > bestValue) || 
+                            (!metric.higherIsBetter && value < bestValue)) {
+                            bestValue = value;
+                            bestRunIndex = index;
+                        }
+                    });
+                }
+                
+                // Add a cell for each run's value
+                state.parsedData.forEach((run, index) => {
+                    const cell = document.createElement('td');
+                    cell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right';
+                    
+                    // Highlight the best value
+                    if (index === bestRunIndex) {
+                        cell.classList.add('font-bold', 'text-green-600');
+                    }
+                    
+                    const value = run.metrics[metric.key];
+                    // Display both absolute value and percentage of best if applicable
+                    if (bestValue !== null && state.parsedData.length > 1 && index !== bestRunIndex) {
+                        const percentage = metric.higherIsBetter 
+                            ? (value / bestValue * 100).toFixed(1) 
+                            : (bestValue / value * 100).toFixed(1);
+                        cell.textContent = `${metric.format(value)} (${percentage}%)`;
+                    } else {
+                        cell.textContent = metric.format(value);
+                    }
+                    
+                    row.appendChild(cell);
+                });
+                
+                // Add 'best config' cell
+                const bestCell = document.createElement('td');
+                bestCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center';
+                
+                if (bestRunIndex >= 0) {
+                    bestCell.textContent = state.parsedData[bestRunIndex].name;
+                    bestCell.style.backgroundColor = state.parsedData[bestRunIndex].color.bgAlpha;
+                } else {
+                    bestCell.textContent = 'N/A';
+                }
+                
+                row.appendChild(bestCell);
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateDetailedConclusion() {
+            elements.detailedConclusion.innerHTML = '';
+            
+            if (state.parsedData.length < 2) {
+                const singleRunDiv = document.createElement('div');
+                singleRunDiv.innerHTML = `
+                    <p class="text-gray-700">Only one configuration was analyzed. Please upload multiple CSV files to see detailed comparisons.</p>
+                `;
+                elements.detailedConclusion.appendChild(singleRunDiv);
+                return;
+            }
+            
+            // Define key metrics and their importance - prioritizing input lag metrics
+            const performanceMetrics = [
+                { name: 'Display Latency', key: 'avgDisplayLatency', higherIsBetter: false, importance: 'critical', 
+                  description: 'Direct measurement of input-to-display lag. The primary metric for input responsiveness.' },
+                { name: 'Frame Time Stability', key: 'frameTimeStdDev', higherIsBetter: false, importance: 'high',
+                  description: 'Measures frame consistency. Unstable frame times create inconsistent input response.' },
+                { name: 'Average FPS', key: 'avgFps', higherIsBetter: true, importance: 'high',
+                  description: 'Higher FPS directly reduces input lag. Each frame in a 60 FPS game adds ~16.7ms of potential lag, while at 144 FPS it is only ~6.9ms.' },
+                { name: '1% Low FPS', key: 'fps1Percentile', higherIsBetter: true, importance: 'high', 
+                  description: 'Measures worst-case scenarios where input lag spikes occur most noticeably.' },
+                { name: '0.1% Low FPS', key: 'fps01Percentile', higherIsBetter: true, importance: 'medium',
+                  description: 'Extreme edge cases that can cause significant input disruption in critical moments.' },
+                { name: 'GPU Utilization', key: 'avgGpuUtil', higherIsBetter: null, importance: 'medium',
+                  description: 'For lowest latency, 80-95% is ideal. 100% can cause frame queuing that increases input lag.' },
+                { name: 'GPU Power', key: 'avgGpuPower', higherIsBetter: false, importance: 'low',
+                  description: 'Lower power may prevent thermal throttling that could introduce latency spikes.' },
+                { name: 'GPU Temperature', key: 'avgGpuTemp', higherIsBetter: false, importance: 'low',
+                  description: 'High temps can cause throttling, leading to inconsistent performance and input lag.' }
+            ];
+            
+            // Find the best run for each metric
+            const bestRunsForMetrics = performanceMetrics.reduce((acc, metric) => {
+                if (metric.higherIsBetter === null) return acc;
+                
+                let bestRunIndex = 0;
+                let bestValue = metric.higherIsBetter ? -Infinity : Infinity;
+                
+                state.parsedData.forEach((run, index) => {
+                    const value = run.metrics[metric.key];
+                    if ((metric.higherIsBetter && value > bestValue) || 
+                        (!metric.higherIsBetter && value < bestValue)) {
+                        bestValue = value;
+                        bestRunIndex = index;
+                    }
+                });
+                
+                acc[metric.key] = {
+                    runIndex: bestRunIndex,
+                    value: bestValue
+                };
+                
+                return acc;
+            }, {});
+            
+            // For each run, analyze strengths and weaknesses
+            state.parsedData.forEach((run, runIndex) => {
+                const pros = [];
+                const cons = [];
+                const metrics = run.metrics;
+                
+                // Compare against other runs
+                performanceMetrics.forEach(metric => {
+                    if (metric.higherIsBetter === null) return;
+                    
+                    const value = metrics[metric.key];
+                    const bestRun = bestRunsForMetrics[metric.key];
+                    
+                    // It's the best for this metric
+                    if (bestRun.runIndex === runIndex) {
+                        pros.push(`Best ${metric.name}: ${metric.higherIsBetter ? 'highest' : 'lowest'} value of ${value.toFixed(2)}${getMetricUnit(metric.key)}`);
+                        return;
+                    }
+                    
+                    // Calculate how far from the best
+                    const percentOfBest = metric.higherIsBetter 
+                        ? (value / bestRun.value * 100) 
+                        : (bestRun.value / value * 100);
+                    
+                    if (percentOfBest >= 95) {
+                        pros.push(`Very good ${metric.name}: Within 5% of the best (${percentOfBest.toFixed(1)}%)`);
+                    } else if (percentOfBest >= 85) {
+                        // Neither a strong pro nor con
+                    } else {
+                        const deficit = (100 - percentOfBest).toFixed(1);
+                        cons.push(`Weak ${metric.name}: ${deficit}% worse than the best configuration`);
+                    }
+                    
+                    // Find specific comparisons against other runs
+                    const otherRunsWorse = state.parsedData.filter((_, i) => i !== runIndex).filter(otherRun => {
+                        const otherValue = otherRun.metrics[metric.key];
+                        return metric.higherIsBetter 
+                            ? value > otherValue * 1.1  // 10% better
+                            : value < otherValue * 0.9; // 10% better (lower)
+                    });
+                    
+                    if (otherRunsWorse.length > 0) {
+                        const names = otherRunsWorse.map(r => r.name).join(', ');
+                        pros.push(`${metric.name} is at least 10% better than ${names}`);
+                    }
+                });
+                
+                // Add utilization insights
+                const gpuUtil = metrics.avgGpuUtil;
+                if (gpuUtil > 95) {
+                    cons.push('GPU is fully saturated (>95% utilization) which may limit further performance gains');
+                } else if (gpuUtil < 70) {
+                    pros.push('GPU has headroom (utilization <70%) which may allow higher settings or resolution');
+                }
+                
+                // Add power/temp observations
+                if (metrics.avgGpuPower > 0) {
+                    const isLowestPower = state.parsedData.every((otherRun, i) => 
+                        i === runIndex || metrics.avgGpuPower < otherRun.metrics.avgGpuPower
+                    );
+                    
+                    if (isLowestPower) {
+                        pros.push(`Most power efficient configuration (${metrics.avgGpuPower.toFixed(1)}W)`);
+                    }
+                }
+                
+                if (metrics.avgGpuTemp > 0) {
+                    const isLowestTemp = state.parsedData.every((otherRun, i) => 
+                        i === runIndex || metrics.avgGpuTemp < otherRun.metrics.avgGpuTemp
+                    );
+                    
+                    if (isLowestTemp) {
+                        pros.push(`Coolest running configuration (${metrics.avgGpuTemp.toFixed(1)}°C)`);
+                    } else if (metrics.avgGpuTemp > 85) {
+                        cons.push(`High GPU temperatures (${metrics.avgGpuTemp.toFixed(1)}°C) may lead to thermal throttling`);
+                    }
+                }
+                
+                // Create the run analysis div
+                const runAnalysisDiv = document.createElement('div');
+                runAnalysisDiv.className = 'bg-gray-50 p-4 rounded border';
+                runAnalysisDiv.innerHTML = `
+                    <h4 class="font-bold text-lg mb-3" style="color: ${run.color.border};">${run.name} Analysis</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <h5 class="font-semibold text-green-600 mb-2">Strengths:</h5>
+                            ${pros.length > 0 
+                                ? `<ul class="pros-list pl-5 list-disc space-y-1">${pros.map(pro => `<li>${pro}</li>`).join('')}</ul>`
+                                : '<p class="text-gray-500 italic">No significant strengths identified</p>'
+                            }
+                        </div>
+                        <div>
+                            <h5 class="font-semibold text-red-600 mb-2">Weaknesses:</h5>
+                            ${cons.length > 0 
+                                ? `<ul class="cons-list pl-5 list-disc space-y-1">${cons.map(con => `<li>${con}</li>`).join('')}</ul>`
+                                : '<p class="text-gray-500 italic">No significant weaknesses identified</p>'
+                            }
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-700 mt-2">
+                        <strong>Summary:</strong> ${generateRunSummary(run, pros, cons, runIndex, bestRunsForMetrics)}
+                    </p>
+                `;
+                
+                elements.detailedConclusion.appendChild(runAnalysisDiv);
+            });
+            
+            // Add overall comparison conclusion at the end
+            const overallDiv = document.createElement('div');
+            overallDiv.className = 'bg-blue-50 p-4 rounded border border-blue-200 mt-6';
+            
+            // Find the best overall run based on weighted metrics - prioritizing latency metrics
+            let bestOverallRunIndex = 0;
+            let bestOverallScore = -Infinity;
+            
+            state.parsedData.forEach((run, index) => {
+                const metrics = run.metrics;
+                // Weighted formula optimized for input lag reduction:
+                // - Higher weight for display latency (direct input lag measurement)
+                // - High weight for frame time stability (affects input consistency)
+                // - Good weight for FPS and low percentiles (affect frame throughput)
+                const score = 
+                    (1 / (metrics.avgDisplayLatency + 0.1)) * 100 * 0.35 + // Display latency - primary input lag metric
+                    (1 / (metrics.frameTimeStdDev + 0.01)) * 20 * 0.25 +  // Frame time stability - affects consistency
+                    metrics.avgFps * 0.15 +                              // Average FPS - throughput
+                    metrics.fps1Percentile * 0.15 +                      // 1% low - worst case scenarios
+                    metrics.fps01Percentile * 0.1;                       // 0.1% low - edge cases
+                
+                if (score > bestOverallScore) {
+                    bestOverallScore = score;
+                    bestOverallRunIndex = index;
+                }
+            });
+            
+            const bestRun = state.parsedData[bestOverallRunIndex];
+            
+            // Generate overall conclusion focused on input lag reduction
+            let overallConclusion = `
+                <h4 class="font-bold text-lg mb-3">Overall Input Lag Analysis</h4>
+                <p class="mb-2"><strong>${bestRun.name}</strong> provides the best overall experience for lowest input lag based on the analyzed metrics.</p>
+                <p class="mb-3">Key findings for input lag optimization:</p>
+                <ul class="list-disc pl-5 space-y-1">
+            `;
+            
+            // Add performance comparison statements focused on input lag
+            if (state.parsedData.length > 1) {
+                const bestAvgLatency = bestRun.metrics.avgDisplayLatency.toFixed(1);
+                const bestFrameTimeStdDev = bestRun.metrics.frameTimeStdDev.toFixed(2);
+                const bestAvgFps = bestRun.metrics.avgFps.toFixed(1);
+                
+                // Find the run with worst latency
+                const worstLatencyIndex = state.parsedData.reduce((worstIdx, run, idx, arr) => {
+                    return (run.metrics.avgDisplayLatency > arr[worstIdx].metrics.avgDisplayLatency) ? idx : worstIdx;
+                }, 0);
+                
+                const worstLatencyRun = state.parsedData[worstLatencyIndex];
+                
+                // Find the run with worst frame consistency
+                const worstFrameTimeIndex = state.parsedData.reduce((worstIdx, run, idx, arr) => {
+                    return (run.metrics.frameTimeStdDev > arr[worstIdx].metrics.frameTimeStdDev) ? idx : worstIdx;
+                }, 0);
+                
+                const worstFrameTimeRun = state.parsedData[worstFrameTimeIndex];
+                
+                // Calculate latency improvement
+                if (bestOverallRunIndex !== worstLatencyIndex) {
+                    const latencyImprovement = ((worstLatencyRun.metrics.avgDisplayLatency - bestRun.metrics.avgDisplayLatency) / worstLatencyRun.metrics.avgDisplayLatency * 100).toFixed(1);
+                    
+                    overallConclusion += `
+                        <li>Display latency is ${latencyImprovement}% lower in ${bestRun.name} (${bestAvgLatency}ms) compared to ${worstLatencyRun.name} (${worstLatencyRun.metrics.avgDisplayLatency.toFixed(1)}ms), directly improving input responsiveness</li>
+                    `;
+                }
+                
+                // Calculate frame consistency improvement
+                if (bestOverallRunIndex !== worstFrameTimeIndex) {
+                    const frameTimeImprovement = ((worstFrameTimeRun.metrics.frameTimeStdDev - bestRun.metrics.frameTimeStdDev) / worstFrameTimeRun.metrics.frameTimeStdDev * 100).toFixed(1);
+                    
+                    overallConclusion += `
+                        <li>Frame time stability is ${frameTimeImprovement}% better in ${bestRun.name}, providing more consistent input response and reducing "jittery" feel</li>
+                    `;
+                }
+                
+                // Calculate FPS improvement (also important for input lag)
+                const worstFpsIndex = state.parsedData.reduce((worstIdx, run, idx, arr) => {
+                    return (run.metrics.avgFps < arr[worstIdx].metrics.avgFps) ? idx : worstIdx;
+                }, 0);
+                
+                const worstFpsRun = state.parsedData[worstFpsIndex];
+                
+                if (bestOverallRunIndex !== worstFpsIndex) {
+                    const fpsDiff = ((bestRun.metrics.avgFps / worstFpsRun.metrics.avgFps - 1) * 100).toFixed(1);
+                    const avgFrameTimeImprovement = ((worstFpsRun.metrics.avgFrameTime - bestRun.metrics.avgFrameTime) / worstFpsRun.metrics.avgFrameTime * 100).toFixed(1);
+                    
+                    overallConclusion += `
+                        <li>Average FPS is ${fpsDiff}% higher in ${bestRun.name}, reducing per-frame processing time by ${avgFrameTimeImprovement}% and lowering input lag</li>
+                    `;
+                }
+                
+                // Add specific recommendation based on GPU utilization, focused on input lag
+                const gpuUtilSaturated = state.parsedData.some(run => run.metrics.avgGpuUtil > 95);
+                const allRunsGpuBound = state.parsedData.every(run => run.metrics.avgGpuUtil > 80);
+                const lowUtilHighLatency = state.parsedData.some(run => 
+                    run.metrics.avgGpuUtil < 70 && run.metrics.avgDisplayLatency > 20);
+                
+                if (gpuUtilSaturated) {
+                    overallConclusion += `
+                        <li>GPU is fully saturated (>95%) in some configurations, which can create render queue backlog and increase input lag. Consider lowering some graphics settings.</li>
+                    `;
+                }
+                
+                if (allRunsGpuBound) {
+                    overallConclusion += `
+                        <li>All configurations are GPU-bound (>80% utilization). For competitive gaming, consider a more powerful GPU or lower settings to reduce input lag.</li>
+                    `;
+                } else if (lowUtilHighLatency) {
+                    overallConclusion += `
+                        <li>Some configurations show low GPU utilization but high latency, suggesting CPU bottlenecking which increases input lag. CPU optimization would help here.</li>
+                    `;
+                } else {
+                    overallConclusion += `
+                        <li>GPU utilization varies between configurations. The ideal range for lowest input lag is 80-95% - high enough for good performance but not causing render queue buildup.</li>
+                    `;
+                }
+                
+                // Add temperature/power comment if available, focused on input lag
+                if (bestRun.metrics.avgGpuTemp > 0 || bestRun.metrics.avgGpuPower > 0) {
+                    overallConclusion += `
+                        <li>${generateEfficiencyComment(state.parsedData)}</li>
+                    `;
+                }
+            }
+            
+            // Add specific input lag optimization recommendations
+            overallConclusion += `
+                </ul>
+                
+                <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+                    <h5 class="font-bold mb-2">Input Lag Optimization Tips:</h5>
+                    <ul class="list-disc pl-5 space-y-1 text-sm">
+                        <li>Enable "High Performance" power plan and GPU settings to minimize latency</li>
+                        <li>Use a high refresh rate monitor with low response time (1ms GTG) for reduced display lag</li>
+                        <li>Consider using NVIDIA Reflex or AMD Anti-Lag if available</li>
+                        <li>For competitive gaming, cap frame rate slightly below your monitor's refresh rate for most consistent input feel</li>
+                        <li>Disable V-Sync to reduce input lag (though this may introduce tearing)</li>
+                        <li>Disable any "heavy" post-processing effects that add rendering time</li>
+                    </ul>
+                </div>
+            `;
+            
+            overallDiv.innerHTML = overallConclusion;
+            elements.detailedConclusion.appendChild(overallDiv);
+        }
+        
+        function getMetricUnit(metricKey) {
+            const units = {
+                avgFps: ' FPS',
+                fps1Percentile: ' FPS',
+                fps01Percentile: ' FPS',
+                frameTimeStdDev: 'ms',
+                avgDisplayLatency: 'ms',
+                avgGpuUtil: '%',
+                avgGpuPower: 'W',
+                avgGpuTemp: '°C'
+            };
+            
+            return units[metricKey] || '';
+        }
+        
+        function generateRunSummary(run, pros, cons, runIndex, bestRunsForMetrics) {
+            const metrics = run.metrics;
+            
+            // Check if this has the best display latency (most important for input lag)
+            const hasLowestLatency = state.parsedData.every((otherRun, i) => 
+                i === runIndex || metrics.avgDisplayLatency <= otherRun.metrics.avgDisplayLatency);
+            
+            // Check if it has best frame time stability (important for consistent input feel)
+            const hasBestFrameTimeStability = state.parsedData.every((otherRun, i) => 
+                i === runIndex || metrics.frameTimeStdDev <= otherRun.metrics.frameTimeStdDev);
+            
+            // Check if it's the best overall for input lag metrics
+            const isBestForInputLag = hasLowestLatency || 
+                (hasBestFrameTimeStability && metrics.avgFps >= 100);
+            
+            // Generate summary focused on input lag
+            if (isBestForInputLag) {
+                return `This configuration provides excellent input responsiveness with ${metrics.avgDisplayLatency.toFixed(1)}ms display latency and ${metrics.frameTimeStdDev.toFixed(2)}ms frame time stability. Ideal for competitive gaming where reaction time matters.`;
+            }
+            
+            // Check if latency is good but not the best
+            const hasGoodLatency = metrics.avgDisplayLatency < 20;
+            
+            if (hasGoodLatency && pros.length > cons.length) {
+                return `This configuration offers good input responsiveness (${metrics.avgDisplayLatency.toFixed(1)}ms) with only minor weaknesses. It achieves ${metrics.avgFps.toFixed(1)} FPS average which helps reduce input lag.`;
+            }
+            
+            if (cons.length > pros.length) {
+                return `This configuration has several areas for improvement regarding input lag. Consider the alternatives for better responsiveness.`;
+            }
+            
+            // Check if it's a good balance of performance and efficiency
+            const isEfficient = metrics.avgGpuPower > 0 && 
+                metrics.avgDisplayLatency < 25 &&
+                state.parsedData.some(otherRun => 
+                    otherRun.metrics.avgDisplayLatency < metrics.avgDisplayLatency * 0.9 && 
+                    otherRun.metrics.avgGpuPower > metrics.avgGpuPower * 1.2
+                );
+            
+            if (isEfficient) {
+                return `This configuration balances input responsiveness (${metrics.avgDisplayLatency.toFixed(1)}ms) and power efficiency. Good for gaming laptops or systems where thermal management is important.`;
+            }
+            
+            // Default summary
+            return `This configuration achieves ${metrics.avgDisplayLatency.toFixed(1)}ms display latency with ${metrics.fps1Percentile.toFixed(1)} FPS for 1% lows. It provides moderate input responsiveness with some trade-offs.`;
+        }
+        
+        function generateEfficiencyComment(runs) {
+            // Sort runs by input-lag efficiency (Input responsiveness per watt)
+            const runsWithPower = runs.filter(run => run.metrics.avgGpuPower > 0 && run.metrics.avgDisplayLatency > 0);
+            
+            if (runsWithPower.length < 2) return "Efficiency data is limited - more runs needed for comparison";
+            
+            runsWithPower.sort((a, b) => {
+                // For input lag, we want to optimize for lowest latency per watt
+                // Lower latency is better, so we invert the ratio
+                const effA = (1 / a.metrics.avgDisplayLatency) / a.metrics.avgGpuPower;
+                const effB = (1 / b.metrics.avgDisplayLatency) / b.metrics.avgGpuPower;
+                return effB - effA;
+            });
+            
+            const mostEfficient = runsWithPower[0];
+            const leastEfficient = runsWithPower[runsWithPower.length - 1];
+            
+            // Calculate efficiency difference focused on input lag per watt
+            const efficiencyDiff = (
+                ((1 / mostEfficient.metrics.avgDisplayLatency) / mostEfficient.metrics.avgGpuPower) / 
+                ((1 / leastEfficient.metrics.avgDisplayLatency) / leastEfficient.metrics.avgGpuPower) - 1
+            ) * 100;
+            
+            if (efficiencyDiff > 15) {
+                return `${mostEfficient.name} is ${efficiencyDiff.toFixed(0)}% more input-lag efficient than ${leastEfficient.name} (better responsiveness per watt). Ideal for gaming laptops or temperature-constrained systems.`;
+            } else {
+                return "All configurations show similar input lag efficiency (responsiveness per watt). For desktop systems, prioritize the configuration with lowest absolute input lag.";
+            }
+        }
+        
+        // ===== Event Listeners =====
+        
+        // File select button click handler
+        elements.fileSelectButton.addEventListener('click', () => {
+            elements.fileInput.click();
+        });
+        
+        // File input change handler
+        elements.fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        // File drop area event listeners
+        elements.fileDropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            elements.fileDropArea.classList.add('file-highlight');
+        });
+
+        elements.fileDropArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            elements.fileDropArea.classList.remove('file-highlight');
+        });
+
+        elements.fileDropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            elements.fileDropArea.classList.remove('file-highlight');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        elements.generateButton.addEventListener('click', generateGraphs);
+        
+        // Add event listeners for chart toggles
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial setup for all toggles
+            document.querySelectorAll('.chart-toggle').forEach(toggle => {
+                toggle.addEventListener('change', function(event) {
+                    const chartId = event.target.getAttribute('data-chart');
+                    state.chartNormalized[chartId] = event.target.checked;
+                    
+                    // Update the corresponding chart
+                    updateChart(chartId);
+                });
+            });
+        });
+        
+        // Config panel toggle
+        elements.configTab.addEventListener('click', () => {
+            elements.configPanel.classList.toggle('closed');
+        });
+        
+        // Download preset button
+        elements.downloadPreset.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Create a blob with the preset data
+            const blob = new Blob([JSON.stringify(presetData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            // Create a temporary link and trigger download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'PresentMon_Overlay_Config.json';
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 0);
+        });
+        
+        // Function to update specific chart based on toggle state
+        function updateChart(chartId) {
+            console.log(`Updating chart: ${chartId}, Normalized: ${state.chartNormalized[chartId]}`);
+            switch (chartId) {
+                case 'avgFpsChart':
+                    createAverageFpsChart();
+                    break;
+                case 'percentileFpsChart':
+                    createPercentileFpsChart();
+                    break;
+                case 'frameTimeChart':
+                    createFrameTimeChart();
+                    break;
+                case 'fpsRangeChart':
+                    createFpsRangeChart();
+                    break;
+                case 'latencyChart':
+                    createLatencyChart();
+                    break;
+                case 'gpuUtilizationChart':
+                    createGpuUtilizationChart();
+                    break;
+                case 'cpuGpuChart':
+                    createCpuGpuChart();
+                    break;
+                case 'gpuPowerTempChart':
+                    createGpuPowerTempChart();
+                    break;
+            }
+        }
+
+        // ===== File Handling Functions =====
+
+        function handleFiles(fileList) {
+            // Clear existing files if we already had processes them
+            if (state.processingComplete) {
+                resetApp();
+            }
+
+            // Add new files
+            for (let i = 0; i < fileList.length; i++) {
+                const file = fileList[i];
+                if (file.name.endsWith('.csv')) {
+                    // Check if file is already in the list
+                    const fileExists = state.files.some(f => f.name === file.name);
+                    if (!fileExists) {
+                        state.files.push(file);
+                    }
+                }
+            }
+
+            // Update the UI
+            updateFileList();
+            updateRunConfiguration();
+        }
+
+        function updateFileList() {
+            if (state.files.length > 0) {
+                elements.fileList.classList.remove('hidden');
+                elements.selectedFiles.innerHTML = '';
+                
+                state.files.forEach((file, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center py-1';
+                    li.innerHTML = `
+                        <span>${file.name}</span>
+                        <button class="text-red-500 hover:text-red-700" data-index="${index}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    `;
+                    elements.selectedFiles.appendChild(li);
+                    
+                    // Add remove file handler
+                    li.querySelector('button').addEventListener('click', (e) => {
+                        const index = parseInt(e.currentTarget.getAttribute('data-index'));
+                        removeFile(index);
+                    });
+                });
+            } else {
+                elements.fileList.classList.add('hidden');
+            }
+        }
+
+        function removeFile(index) {
+            if (index >= 0 && index < state.files.length) {
+                state.files.splice(index, 1);
+                updateFileList();
+                updateRunConfiguration();
+            }
+        }
+
+        function updateRunConfiguration() {
+            if (state.files.length > 0) {
+                elements.configOptions.classList.remove('hidden');
+                elements.runConfigurations.innerHTML = '';
+                
+                state.runConfigs = state.files.map((file, index) => ({
+                    fileIndex: index,
+                    name: getConfigNameFromFilename(file.name),
+                    color: COLORS[index % COLORS.length]
+                }));
+                
+                state.runConfigs.forEach((config, index) => {
+                    const configEl = document.createElement('div');
+                    configEl.className = 'flex flex-col md:flex-row items-start md:items-center gap-4 bg-gray-50 p-4 rounded';
+                    configEl.innerHTML = `
+                        <div class="flex-grow">
+                            <div class="text-sm text-gray-500 mb-1">Run ${index + 1}: ${state.files[config.fileIndex].name}</div>
+                            <div class="flex items-center gap-2">
+                                <input type="text" value="${config.name}" class="config-name-input px-3 py-2 border rounded w-full" 
+                                    placeholder="Configuration Name" data-index="${index}">
+                                <div class="w-6 h-6 rounded" style="background-color: ${config.color.bg}"></div>
+                            </div>
+                        </div>
+                    `;
+                    elements.runConfigurations.appendChild(configEl);
+                    
+                    // Add name change handler
+                    configEl.querySelector('.config-name-input').addEventListener('input', (e) => {
+                        const index = parseInt(e.target.getAttribute('data-index'));
+                        state.runConfigs[index].name = e.target.value;
+                    });
+                });
+            } else {
+                elements.configOptions.classList.add('hidden');
+            }
+        }
+
+        function getConfigNameFromFilename(filename) {
+            // Extract meaningful name from PresentMon filenames
+            // Example: pmcapMarvelWin64Shipping.exe250320003708.csv -> Marvel Run 1
+            const appName = filename.split('.exe')[0].replace('pmcap', '');
+            return appName.charAt(0).toUpperCase() + appName.slice(1) + ' Run';
+        }
+
+        // ===== Data Processing Functions =====
+
+        async function generateGraphs() {
+            if (state.files.length === 0) {
+                alert('Please upload at least one CSV file first.');
+                return;
+            }
+            
+            const success = await parseFiles();
+            if (success) {
+                state.processingComplete = true;
+                // Initialize chart normalization state
+                const chartIds = ['avgFpsChart', 'percentileFpsChart', 'frameTimeChart', 'fpsRangeChart', 
+                                 'latencyChart', 'gpuUtilizationChart', 'cpuGpuChart', 'gpuPowerTempChart'];
+                chartIds.forEach(id => {
+                    state.chartNormalized[id] = false;
+                });
+                
+                createCharts();
+                updateMetricsSummary();
+                updateRecommendation();
+                updateMetricsTable();
+                updateDetailedConclusion();
+                elements.resultsContainer.classList.remove('hidden');
+                
+                // Add event listeners for the toggle switches after charts are created
+                document.querySelectorAll('.chart-toggle').forEach(toggle => {
+                    toggle.addEventListener('change', function(event) {
+                        const chartId = event.target.getAttribute('data-chart');
+                        state.chartNormalized[chartId] = event.target.checked;
+                        console.log(`Toggle changed for ${chartId}: ${event.target.checked}`);
+                        // Update the corresponding chart
+                        updateChart(chartId);
+                    });
+                });
+                
+                // Scroll to results
+                elements.resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        async function parseFiles() {
+            elements.loadingIndicator.classList.remove('hidden');
+            state.parsedData = [];
+            
+            // Parse each file
+            for (let i = 0; i < state.files.length; i++) {
+                const file = state.files[i];
+                const config = state.runConfigs.find(c => c.fileIndex === i);
+                
+                try {
+                    const data = await parseCSVFile(file);
+                    state.parsedData.push({
+                        name: config.name,
+                        color: config.color,
+                        rawData: data,
+                        metrics: calculateMetrics(data)
+                    });
+                } catch (error) {
+                    console.error(`Error parsing file ${file.name}:`, error);
+                    alert(`Error parsing file ${file.name}. Please check if it's a valid PresentMon CSV.`);
+                }
+            }
+            
+            elements.loadingIndicator.classList.add('hidden');
+            return state.parsedData.length > 0;
+        }
+
+        function parseCSVFile(file) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(file, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        if (results.errors.length) {
+                            reject(results.errors);
+                        } else {
+                            resolve(results.data);
+                        }
+                    },
+                    error: (error) => {
+                        reject(error);
+                    }
+                });
+            });
+        }
+
+        function calculateMetrics(data) {
+            // Calculate performance metrics
+            const frameTimes = data.map(row => row.FrameTime).filter(v => v && !isNaN(v) && v > 0);
+            const cpuBusyTimes = data.map(row => row.CPUBusy).filter(v => v && !isNaN(v) && v > 0);
+            const gpuBusyTimes = data.map(row => row.GPUBusy).filter(v => v && !isNaN(v) && v > 0);
+            const gpuTimes = data.map(row => row.GPUTime).filter(v => v && !isNaN(v) && v > 0);
+            const cpuWaitTimes = data.map(row => row.CPUWait).filter(v => v && !isNaN(v) && v > 0);
+            const gpuWaitTimes = data.map(row => row.GPUWait).filter(v => v && !isNaN(v) && v > 0);
+            const displayLatencies = data.map(row => row.DisplayLatency).filter(v => v && !isNaN(v) && v > 0);
+            const gpuPower = data.map(row => row.GPUPower).filter(v => v && !isNaN(v) && v > 0);
+            const gpuTemperature = data.map(row => row.GPUTemperature).filter(v => v && !isNaN(v) && v > 0);
+            const gpuUtilization = data.map(row => row.GPUUtilization).filter(v => v && !isNaN(v) && v > 0);
+            const cpuUtilization = data.map(row => row.CPUUtilization).filter(v => v && !isNaN(v) && v > 0);
+            
+            // Get sorted arrays for percentiles
+            const sortedFrameTimes = [...frameTimes].sort((a, b) => a - b);
+            
+            // Calculate FPS from frame times
+            const fps = frameTimes.map(frameTime => 1000 / frameTime);
+            const avgFps = fps.reduce((sum, v) => sum + v, 0) / fps.length;
+            
+            // Calculate percentiles for frame time and FPS
+            const getPercentile = (array, percentile) => {
+                if (array.length === 0) return 0;
+                const index = Math.floor(array.length * (percentile / 100));
+                return array[index];
+            };
+            
+            // FPS Percentiles (lower percentile = worse performance for FPS)
+            const fps99Percentile = 1000 / getPercentile(sortedFrameTimes, 99);
+            const fps95Percentile = 1000 / getPercentile(sortedFrameTimes, 95);
+            const fps90Percentile = 1000 / getPercentile(sortedFrameTimes, 90);
+            const fps50Percentile = 1000 / getPercentile(sortedFrameTimes, 50); // Median
+            const fps1Percentile = 1000 / getPercentile(sortedFrameTimes, 1);   // 1% low
+            const fps01Percentile = 1000 / getPercentile(sortedFrameTimes, 0.1); // 0.1% low
+            
+            // Calculate frame time metrics
+            const avgFrameTime = frameTimes.reduce((sum, v) => sum + v, 0) / frameTimes.length;
+            const minFrameTime = Math.min(...frameTimes);
+            const maxFrameTime = Math.max(...frameTimes);
+            
+            // Calculate frame time variability (stutter metric)
+            const frameTimeVariance = frameTimes.reduce((sum, v) => sum + Math.pow(v - avgFrameTime, 2), 0) / frameTimes.length;
+            const frameTimeStdDev = Math.sqrt(frameTimeVariance);
+            
+            // Calculate other averages
+            const avgCpuBusy = cpuBusyTimes.length ? cpuBusyTimes.reduce((sum, v) => sum + v, 0) / cpuBusyTimes.length : 0;
+            const avgGpuBusy = gpuBusyTimes.length ? gpuBusyTimes.reduce((sum, v) => sum + v, 0) / gpuBusyTimes.length : 0;
+            const avgGpuTime = gpuTimes.length ? gpuTimes.reduce((sum, v) => sum + v, 0) / gpuTimes.length : 0;
+            const avgCpuWait = cpuWaitTimes.length ? cpuWaitTimes.reduce((sum, v) => sum + v, 0) / cpuWaitTimes.length : 0;
+            const avgGpuWait = gpuWaitTimes.length ? gpuWaitTimes.reduce((sum, v) => sum + v, 0) / gpuWaitTimes.length : 0;
+            const avgDisplayLatency = displayLatencies.length ? displayLatencies.reduce((sum, v) => sum + v, 0) / displayLatencies.length : 0;
+            const avgGpuPower = gpuPower.length ? gpuPower.reduce((sum, v) => sum + v, 0) / gpuPower.length : 0;
+            const avgGpuTemp = gpuTemperature.length ? gpuTemperature.reduce((sum, v) => sum + v, 0) / gpuTemperature.length : 0;
+            const avgGpuUtil = gpuUtilization.length ? gpuUtilization.reduce((sum, v) => sum + v, 0) / gpuUtilization.length : 0;
+            const avgCpuUtil = cpuUtilization.length ? cpuUtilization.reduce((sum, v) => sum + v, 0) / cpuUtilization.length : 0;
+            
+            // Calculate min/max FPS
+            const minFps = 1000 / maxFrameTime;
+            const maxFps = 1000 / minFrameTime;
+            
+            // Create histogram data for frame time distribution
+            const frameTimeHistogram = createHistogram(frameTimes, 20);
+            
+            return {
+                // Main FPS metrics
+                avgFps,
+                minFps,
+                maxFps,
+                fps99Percentile,
+                fps95Percentile,
+                fps90Percentile,
+                fps50Percentile,
+                fps1Percentile,
+                fps01Percentile,
+                
+                // Frame time metrics
+                avgFrameTime,
+                minFrameTime,
+                maxFrameTime,
+                frameTimeStdDev,
+                frameTimeVariance,
+                frameTimeHistogram,
+                
+                // CPU/GPU times
+                avgCpuBusy,
+                avgGpuBusy,
+                avgGpuTime,
+                avgCpuWait,
+                avgGpuWait,
+                
+                // Latency metrics
+                avgDisplayLatency,
+                
+                // GPU hardware metrics
+                avgGpuPower,
+                avgGpuTemp,
+                avgGpuUtil,
+                avgCpuUtil,
+                
+                // Frame count and sample size
+                frameCount: frameTimes.length
+            };
+        }
+
+        function createHistogram(data, binCount) {
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            const binWidth = (max - min) / binCount;
+            
+            const bins = Array(binCount).fill(0);
+            
+            data.forEach(value => {
+                const binIndex = Math.min(Math.floor((value - min) / binWidth), binCount - 1);
+                bins[binIndex]++;
+            });
+            
+            return {
+                bins,
+                min,
+                max,
+                binWidth,
+                binStartPoints: Array(binCount).fill(0).map((_, i) => min + i * binWidth)
+            };
+        }
+
+        // ===== Chart Creation Functions =====
+
+        function createCharts() {
+            // Destroy existing charts if any
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            
+            createAverageFpsChart();
+            createPercentileFpsChart();
+            createFrameTimeChart();
+            createFpsRangeChart();
+            createLatencyChart();
+            createGpuUtilizationChart();
+            createCpuGpuChart();
+            createGpuPowerTempChart();
+        }
+        
+        // Helper function to normalize data relative to highest value (100%)
+        function normalizeData(data, higherIsBetter = true) {
+            if (data.length === 0) return [];
+            
+            const bestValue = higherIsBetter ? 
+                Math.max(...data) : 
+                Math.min(...data);
+                
+            return data.map(value => {
+                return higherIsBetter ? 
+                    (value / bestValue) * 100 : 
+                    (bestValue / value) * 100;
+            });
+        }
+
+        function createAverageFpsChart() {
+            const ctx = document.getElementById('avgFpsChart').getContext('2d');
+            const isNormalized = state.chartNormalized['avgFpsChart'] || false;
+            
+            const rawData = state.parsedData.map(run => run.metrics.avgFps);
+            const displayData = isNormalized ? normalizeData(rawData, true) : rawData;
+            
+            charts.avgFps = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: state.parsedData.map(run => run.name),
+                    datasets: [{
+                        label: isNormalized ? 'Average FPS (%)' : 'Average FPS',
+                        data: displayData,
+                        backgroundColor: state.parsedData.map(run => run.color.bg),
+                        borderColor: state.parsedData.map(run => run.color.border),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed.y.toFixed(2);
+                                    const rawValue = rawData[context.dataIndex].toFixed(2);
+                                    if (isNormalized) {
+                                        return `${context.dataset.label}: ${value}% (${rawValue} FPS)`;
+                                    } else {
+                                        return `${context.dataset.label}: ${value}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: isNormalized ? 'Relative Performance (%)' : 'FPS'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPercentileFpsChart() {
+            const ctx = document.getElementById('percentileFpsChart').getContext('2d');
+            const isNormalized = state.chartNormalized['percentileFpsChart'] || false;
+            
+            const rawData1Percent = state.parsedData.map(run => run.metrics.fps1Percentile);
+            const rawData01Percent = state.parsedData.map(run => run.metrics.fps01Percentile);
+            
+            const displayData1Percent = isNormalized ? normalizeData(rawData1Percent, true) : rawData1Percent;
+            const displayData01Percent = isNormalized ? normalizeData(rawData01Percent, true) : rawData01Percent;
+            
+            charts.percentileFps = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: state.parsedData.map(run => run.name),
+                    datasets: [
+                        {
+                            label: isNormalized ? '1% Low FPS (%)' : '1% Low FPS',
+                            data: displayData1Percent,
+                            backgroundColor: state.parsedData.map(run => run.color.bgAlpha),
+                            borderColor: state.parsedData.map(run => run.color.border),
+                            borderWidth: 1
+                        },
+                        {
+                            label: isNormalized ? '0.1% Low FPS (%)' : '0.1% Low FPS',
+                            data: displayData01Percent,
+                            backgroundColor: state.parsedData.map(run => {
+                                const color = run.color.bg;
+                                return color.replace('rgb', 'rgba').replace(')', ', 0.6)');
+                            }),
+                            borderColor: state.parsedData.map(run => run.color.border),
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed.y.toFixed(2);
+                                    const datasetIndex = context.datasetIndex;
+                                    const rawValue = datasetIndex === 0 ? 
+                                        rawData1Percent[context.dataIndex].toFixed(2) : 
+                                        rawData01Percent[context.dataIndex].toFixed(2);
+                                    
+                                    if (isNormalized) {
+                                        return `${context.dataset.label}: ${value}% (${rawValue} FPS)`;
+                                    } else {
+                                        return `${context.dataset.label}: ${value}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: isNormalized ? 'Relative Performance (%)' : 'FPS'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createFrameTimeChart() {
+            const ctx = document.getElementById('frameTimeChart').getContext('2d');
+            const isNormalized = state.chartNormalized['frameTimeChart'] || false;
+            
+            // Create datasets for each run's frame time distribution
+            const datasets = state.parsedData.map(run => {
+                const histogram = run.metrics.frameTimeHistogram;
+                
+                // For frame time, we need to invert the normalization (100% would be the lowest/best frame time)
+                let displayBins;
+                if (isNormalized) {
+                    const maxBin = Math.max(...histogram.bins);
+                    displayBins = histogram.bins.map(bin => (bin / maxBin) * 100);
+                } else {
+                    displayBins = histogram.bins;
+                }
+                
+                return {
+                    label: `${run.name} Frame Time Distribution${isNormalized ? ' (%)' : ''}`,
+                    data: displayBins,
+                    backgroundColor: run.color.bgAlpha,
+                    borderColor: run.color.border,
+                    borderWidth: 1
+                };
+            });
+            
+            charts.frameTime = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: state.parsedData[0].metrics.frameTimeHistogram.binStartPoints.map(v => v.toFixed(1)),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: (tooltipItems) => {
+                                    const binIndex = tooltipItems[0].dataIndex;
+                                    const run = state.parsedData[tooltipItems[0].datasetIndex];
+                                    const histogram = run.metrics.frameTimeHistogram;
+                                    const start = histogram.binStartPoints[binIndex];
+                                    const end = start + histogram.binWidth;
+                                    return `Frame Time: ${start.toFixed(1)}ms - ${end.toFixed(1)}ms`;
+                                },
+                                label: (context) => {
+                                    const value = context.parsed.y;
+                                    const runIndex = context.datasetIndex;
+                                    const binIndex = context.dataIndex;
+                                    const rawValue = state.parsedData[runIndex].metrics.frameTimeHistogram.bins[binIndex];
+                                    
+                                    if (isNormalized) {
+                                        return `${context.dataset.label}: ${value.toFixed(1)}% (${rawValue} frames)`;
+                                    } else {
+                                        return `${context.dataset.label}: ${value} frames`;
+                                    }
+                                }
+                            }
+                        },
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Frame Time (ms)'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: isNormalized ? 'Relative Frame Count (%)' : 'Number of Frames'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createFpsRangeChart() {
+            const ctx = document.getElementById('fpsRangeChart').getContext('2d');
+            const isNormalized = state.chartNormalized['fpsRangeChart'] || false;
+            
+            const rawData = state.parsedData.map(run => run.metrics.maxFps - run.metrics.minFps);
+            const displayData = isNormalized ? normalizeData(rawData, false) : rawData;
+            
+            charts.fpsRange = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: state.parsedData.map(run => run.name),
+                    datasets: [
+                        {
+                            label: isNormalized ? 'FPS Range Score (%)' : 'Min to Max FPS Range',
+                            data: displayData,
+                            backgroundColor: state.parsedData.map(run => run.color.bgAlpha),
+                            borderColor: state.parsedData.map(run => run.color.border),
+                            borderWidth: 1,
+                            barPercentage: 0.5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const runIndex = context.dataIndex;
+                                    const run = state.parsedData[runIndex];
+                                    const value = context.parsed.y.toFixed(2);
+                                    
+                                    if (isNormalized) {
+                                        return [
+                                            `FPS Stability Score: ${value}%`,
+                                            `FPS Range: ${run.metrics.minFps.toFixed(2)} - ${run.metrics.maxFps.toFixed(2)}`,
+                                            `Range Width: ${(run.metrics.maxFps - run.metrics.minFps).toFixed(2)}`,
+                                            `Standard Deviation: ${run.metrics.frameTimeStdDev.toFixed(2)}ms`
+                                        ];
+                                    } else {
+                                        return [
+                                            `FPS Range: ${run.metrics.minFps.toFixed(2)} - ${run.metrics.maxFps.toFixed(2)}`,
+                                            `Range Width: ${value}`,
+                                            `Standard Deviation: ${run.metrics.frameTimeStdDev.toFixed(2)}ms`
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: isNormalized ? 'Stability Score (%)' : 'FPS Range (Max - Min)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createLatencyChart() {
+            const ctx = document.getElementById('latencyChart').getContext('2d');
+            const isNormalized = state.chartNormalized['latencyChart'] || false;
+            
+            const rawData = state.parsedData.map(run => run.metrics.avgDisplayLatency);
+            const displayData = isNormalized ? normalizeData(rawData, false) : rawData;
+            
+            charts.latency = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: state.parsedData.map(run => run.name),
+                    datasets: [
+                        {
+                            label: isNormalized ? 'Display Latency Score (%)' : 'Display Latency (ms)',
+                            data: displayData,
+                            backgroundColor: state.parsedData.map(run => run.color.bgAlpha),
+                            borderColor: state.parsedData.map(run => run.color.border),
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed.y.toFixed(2);
+                                    const rawValue = rawData[context.dataIndex].toFixed(2);
+                                    
+                                    if (isNormalized) {
+                                        return `Latency Score: ${value}% (${rawValue} ms)`;
+                                    } else {
+                                        return `Display Latency: ${value} ms`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: isNormalized ? 'Latency Score (%)' : 'Latency (ms)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createGpuUtilizationChart() {
+            const ctx = document.getElementById('gpuUtilizationChart').getContext('2d');
+            const isNormalized = state.chartNormalized['gpuUtilizationChart'] || false;
+            
+            const rawDataGpu = state.parsedData.map(run => run.metrics.avgGpuUtil);
+            const rawDataCpu = state.parsedData.map(run => run.metrics.avgCpuUtil);
+            
+            // For utilization, we may not want to normalize because 100% utilization isn't always better
+            // But we'll provide the option for consistent UI
+            const displayDataGpu = isNormalized ? normalizeData(rawDataGpu, true) : rawDataGpu;
+            const displayDataCpu = isNormalized ? normalizeData(rawDataCpu, true) : rawDataCpu;
+            
+            charts.gpuUtil = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: state.parsedData.map(run => run.name),
+                    datasets: [
+                        {
+                            label: isNormalized ? 'GPU Utilization (%)' : 'GPU Utilization (%)',
+                            data: displayDataGpu,
+                            backgroundColor: state.parsedData.map(run => run.color.bgAlpha),
+                            borderColor: state.parsedData.map(run => run.color.border),
+                            borderWidth: 1
+                        },
+                        {
+                            label: isNormalized ? 'CPU Utilization (%)' : 'CPU Utilization (%)',
+                            data: displayDataCpu,
+                            backgroundColor: state.parsedData.map(run => {
+                                // Darker shade
+                                return run.color.bg.replace('rgb', 'rgba').replace(')', ', 0.6)');
+                            }),
+                            borderColor: state.parsedData.map(run => run.color.border),
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed.y.toFixed(2);
+                                    const datasetIndex = context.datasetIndex;
+                                    const rawValue = datasetIndex === 0 ? 
+                                        rawDataGpu[context.dataIndex].toFixed(2) : 
+                                        rawDataCpu[context.dataIndex].toFixed(2);
+                                    
+                                    const label = context.dataset.label.replace(' (%)', '');
+                                    
+                                    if (isNormalized && datasetIndex === 0) {
+                                        return `${label}: ${value}% (${rawValue}%)`;
+                                    } else if (isNormalized && datasetIndex === 1) {
+                                        return `${label}: ${value}% (${rawValue}%)`;
+                                    } else {
+                                        return `${label}: ${value}%`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: isNormalized ? 100 : 100,
+                            title: {
+                                display: true,
+                                text: isNormalized ? 'Relative Utilization (%)' : 'Utilization (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createCpuGpuChart() {
+            const ctx = document.getElementById('cpuGpuChart').getContext('2d');
+            const isNormalized = state.chartNormalized['cpuGpuChart'] || false;
+            
+            const rawDataCpu = state.parsedData.map(run => run.metrics.avgCpuBusy);
+            const rawDataGpu = state.parsedData.map(run => run.metrics.avgGpuTime);
+            
+            // For CPU/GPU time, lower is better
+            const displayDataCpu = isNormalized ? normalizeData(rawDataCpu, false) : rawDataCpu;
+            const displayDataGpu = isNormalized ? normalizeData(rawDataGpu, false) : rawDataGpu;
+            
+            charts.cpuGpu = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: state.parsedData.map(run => run.name),
+                    datasets: [
+                        {
+                            label: isNormalized ? 'CPU Busy Time Score (%)' : 'CPU Busy Time (ms)',
+                            data: displayDataCpu,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: isNormalized ? 'GPU Time Score (%)' : 'GPU Time (ms)',
+                            data: displayDataGpu,
+                            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                            borderColor: 'rgb(255, 99, 132)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed.y.toFixed(2);
+                                    const datasetIndex = context.datasetIndex;
+                                    const rawValue = datasetIndex === 0 ? 
+                                        rawDataCpu[context.dataIndex].toFixed(2) : 
+                                        rawDataGpu[context.dataIndex].toFixed(2);
+                                    
+                                    if (isNormalized) {
+                                        return `${context.dataset.label}: ${value}% (${rawValue} ms)`;
+                                    } else {
+                                        return `${context.dataset.label}: ${value} ms`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: isNormalized ? 'Performance Score (%)' : 'Time (ms)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createGpuPowerTempChart() {
+            const ctx = document.getElementById('gpuPowerTempChart').getContext('2d');
+            const isNormalized = state.chartNormalized['gpuPowerTempChart'] || false;
+            
+            const rawDataPower = state.parsedData.map(run => run.metrics.avgGpuPower);
+            const rawDataTemp = state.parsedData.map(run => run.metrics.avgGpuTemp);
+            
+            // For power and temperature, lower is better
+            const displayDataPower = isNormalized ? normalizeData(rawDataPower, false) : rawDataPower;
+            const displayDataTemp = isNormalized ? normalizeData(rawDataTemp, false) : rawDataTemp;
+            
+            charts.gpuPowerTemp = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: state.parsedData.map(run => run.name),
+                    datasets: [
+                        {
+                            label: isNormalized ? 'GPU Power Efficiency (%)' : 'GPU Power (Watts)',
+                            data: displayDataPower,
+                            backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                            borderColor: 'rgb(255, 159, 64)',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: isNormalized ? 'GPU Temp Score (%)' : 'GPU Temperature (°C)',
+                            data: displayDataTemp,
+                            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                            borderColor: 'rgb(255, 99, 132)',
+                            borderWidth: 1,
+                            yAxisID: isNormalized ? 'y' : 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed.y.toFixed(2);
+                                    const datasetIndex = context.datasetIndex;
+                                    const rawValue = datasetIndex === 0 ? 
+                                        rawDataPower[context.dataIndex].toFixed(2) : 
+                                        rawDataTemp[context.dataIndex].toFixed(2);
+                                    
+                                    if (isNormalized) {
+                                        return `${context.dataset.label}: ${value}% (${rawValue}${datasetIndex === 0 ? 'W' : '°C'})`;
+                                    } else {
+                                        return `${context.dataset.label}: ${value}${datasetIndex === 0 ? 'W' : '°C'}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: isNormalized ? 'Efficiency Score (%)' : 'Power (Watts)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: !isNormalized,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize config panel state
+        elements.configPanel.classList.add('closed');
+    </script>
+</body>
+</html>
